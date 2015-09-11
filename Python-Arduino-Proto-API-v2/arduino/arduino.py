@@ -14,7 +14,34 @@ class Arduino(object):
     def __str__(self):
         return "Arduino is on port %s at %d baudrate" %(self.serial.port, self.serial.baudrate)
 
-    def output(self, pinArray):
+    def setup(self, outputPins, inputPins, servoPins):
+	self.__sendData(b'99')	
+	self._output(outputPins);
+	self._input(inputPins);
+	self._servos(servoPins);
+
+    def setupSlave(self, slaveIdx, slaveTx, outputPins, inputPins, servoPins):
+	self.__sendData('6')
+	self.__sendData(slaveIdx);
+	self.__sendData(slaveTx);
+	
+	self.__sendData(len(outputPins))
+	for each_pin in outputPins:
+	    self.__sendData(each_pin)
+
+	self.__sendData(len(inputPins))
+	for each_pin in inputPins:
+	    self.__sendData(each_pin)
+
+	self.__sendData(len(servoPins))
+	for each_pin in servoPins:
+	    self.__sendData(each_pin)
+    		
+    def nextCommandAsSlave(self, slaveIdx):
+	self.__sendData('7')
+	self.__sendData(slaveIdx)
+
+    def _output(self, pinArray):
         self.__sendData(len(pinArray))
 
         if(isinstance(pinArray, list) or isinstance(pinArray, tuple)):
@@ -22,7 +49,7 @@ class Arduino(object):
             for each_pin in pinArray:
                 self.__sendData(each_pin)
         return True
-    def input(self, pinArray):
+    def _input(self, pinArray):
         self.__sendData(len(pinArray))
 
         if(isinstance(pinArray, list) or isinstance(pinArray, tuple)):
@@ -30,7 +57,7 @@ class Arduino(object):
             for each_pin in pinArray:
                 self.__sendData(each_pin)
         return True
-    def servos(self, pinArray):
+    def _servos(self, pinArray):
 	self.__sendData(len(pinArray))
 
         if(isinstance(pinArray, list) or isinstance(pinArray, tuple)):
@@ -80,6 +107,7 @@ class Arduino(object):
         return True
 
     def __sendData(self, serial_data):
+	print serial_data
         while(self.__getData()[0] != "w"):
             pass
         serial_data = str(serial_data).encode('utf-8')

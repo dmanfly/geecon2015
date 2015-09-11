@@ -3,14 +3,36 @@ import time
 
 try:
     b = Arduino('/dev/tty.usbmodem1421')
+    print "Connected to usbmodem1421"
 except:
-    b = Arduino('/dev/ttyACM0')
-servo1 = 13
-servo2 = 12
+    try:
+    	b = Arduino('/dev/ttyACM0')
+	print "Connected to ttyACM0"
+    except:
+        b = Arduino('/dev/ttyUSB0')
+	print "Connected to ttyUSB0"
 
-b.output([])
+led_pin = 13
+b.output([led_pin])
 b.input([])
-b.servos([servo1, servo2])   
+b.servos([])   
+print "Pin setup done"
+
+for i in xrange(18):
+    b.setHigh(led_pin)
+    time.sleep(1)
+    print b.getState(led_pin)
+    b.setLow(led_pin)
+    print b.getState(led_pin)
+    time.sleep(1)
+
+
+
+#servo1 = 13
+#servo2 = 12
+#b.output([])
+#b.input([])
+#b.servos([servo1, servo2])   
 # for i in xrange(18):
 #     # b.setHigh(pin)
 #     # time.sleep(1)
