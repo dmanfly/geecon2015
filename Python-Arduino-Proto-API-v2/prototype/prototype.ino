@@ -17,7 +17,11 @@ int maxPulse = 2400;  // maximum servo position, us
 #define MAX_SLAVES 3
 #define MAX_PINS 32
 #define INVALID_PIN -1
-         
+//void print(const char* str)
+//{
+//  snprintf(debug_msg, 12, "XXread len %d\n", len);
+//  Serial.println(debug_msg);`
+//}
 struct ServoAndPin {
   Servo o;
   int pin;
@@ -122,15 +126,19 @@ void loop() {
             int inputLen = readArray(inputPins, MAX_PINS);
             int outputLen = readArray(outputPins, MAX_PINS);
             int servoLen = readArray(servoPins, MAX_PINS);
-            
+            char debug_msg[40] = {0};
+            snprintf(debug_msg, 40, "XXtx:%d in:%d, out : %d, ser : %d",slaveTx, inputLen,outputLen, servoLen);
+            Serial.println(debug_msg);
             if (slavesSerials[slaveId]) {
               slavesSerials[slaveId]->end();
               delete slavesSerials[slaveId];
             }
+            
             slavesSerials[slaveId] = new SendOnlySoftwareSerial((uint8_t)slaveTx); 
             slavesSerials[slaveId]->begin(SERIAL_RATE);
             
             writeInt(slavesSerials[slaveId], 99);
+            delay(100);
             
             writeArray(slavesSerials[slaveId], inputLen, inputPins);
             writeArray(slavesSerials[slaveId], outputLen, outputPins);
@@ -172,9 +180,12 @@ void loop() {
 
 int readArray(int* array, int BUFFER_SIZE) {
     int len = readData();  
+    while (len == 99){
+      len = readData();
+    }
     
     char debug_msg[12] = {0};
-    snprintf(debug_msg, 12, "XXread len XX%d\n", len);
+    snprintf(debug_msg, 12, "XXread len %d", len);
     Serial.println(debug_msg);
     
     for (int i = 0; i < len; i++) {
