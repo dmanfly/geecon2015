@@ -10,14 +10,18 @@ class Arduino(object):
 
     def __init__(self, port, baudrate=115200):
         self.serial = serial.Serial(port, baudrate)
- 	self.serial.write(b'99')
+ 	self.serial.write(b'FF')
     def __str__(self):
         return "Arduino is on port %s at %d baudrate" %(self.serial.port, self.serial.baudrate)
 
     def setup(self, outputPins, inputPins, servoPins):
-        self.__sendData('9')
-	time.sleep(0.1)
-	self.__sendData('9')
+	# Wait for ready signal
+	print "Setting up master" 
+	while(self.__getData()[0] != "r"):
+            pass
+	print "Found init msg"
+	self.serial.write("99\n")
+
 	self._output(outputPins);
 	self._input(inputPins);
 	self._servos(servoPins);
@@ -109,15 +113,25 @@ class Arduino(object):
         return True
 
     def __sendData(self, serial_data):
-	print serial_data
-        while(self.__getData()[0] != "w"):
-            pass
+        while(1):
+	    data = self.__getData()
+	    if data[0] == "w":
+		print "Got wait"
+		break
+	    if data[0] == "r":
+		raise "Got out of play initialize" 
         serial_data = str(serial_data).encode('utf-8')
         self.serial.write(serial_data)
 
     def __getData(self):
         input_string = self.serial.readline()
-        input_string = input_string.decode('utf-8')
+	print "IN: " + input_string	
+	if input_string[0] == "X":
+	    print "DEBUG! : " +  input_string	
+	try:
+	    input_string = input_string.decode('utf-8')
+	except:
+	    print "undecoded string " + input_string
         return input_string.rstrip('\n')
 
     def __formatPinState(self, pinValue):

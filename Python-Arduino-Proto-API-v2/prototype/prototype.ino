@@ -43,9 +43,19 @@ void setup() {
       slavesSerials[i] = NULL;
     }
     int pins[MAX_PINS];
-    
-    while (readData() != 9);
-    
+    Serial.println("r");
+    while (1) {
+      if(Serial.available() > 0) {
+        if (Serial.parseInt() == 99) {
+          Serial.println("XXFound 99!");
+          break;
+       }
+      }
+      else {
+        delay(20);
+      }
+    }
+    Serial.println("XXGetting Output pins!");
     // Output
     int len = readArray(pins, MAX_PINS);
     for (int i = 0; i < len; i++) {
@@ -115,6 +125,8 @@ void loop() {
             slavesSerials[slaveId] = new SendOnlySoftwareSerial((uint8_t)slaveTx); 
             slavesSerials[slaveId]->begin(SERIAL_RATE);
             
+            writeInt(slavesSerials[slaveId], 99);
+            
             writeArray(slavesSerials[slaveId], inputLen, inputPins);
             writeArray(slavesSerials[slaveId], outputLen, outputPins);
             writeArray(slavesSerials[slaveId], servoLen, servoPins);
@@ -154,7 +166,7 @@ void loop() {
 }
 
 int readArray(int* array, int BUFFER_SIZE) {
-    int len = readData();
+    int len = readData();  
     for (int i = 0; i < len; i++) {
         int val = readData();
         if (i < BUFFER_SIZE)
@@ -175,10 +187,14 @@ int readData() {
 
 
 void writeInt(SendOnlySoftwareSerial* ser, int intie) {
-  uint8_t* pByteArray = (uint8_t*)&intie;
+  char debug_msg[12] = {0};
+  snprintf(debug_msg, 12, "XX%d", intie);
+  Serial.println(debug_msg);
   
-  for (int i = 0; i < 4; i++) {
-    ser->write(pByteArray[i]);
+  char msg[10] = {0};
+  int len = snprintf(msg, 10, "%d", intie);
+  for (int i = 0; i < len; i++) {
+    ser->write(msg[i]);
   }
 }
 
