@@ -12,22 +12,49 @@
 int minPulse = 600;   // minimum servo position, us (microseconds)
 int maxPulse = 2400;  // maximum servo position, us
 
-Servo servo;
-      
+#define _MAX_SERVOS 10
+#define INVALID_SERVO_PIN -1
+
+struct ServoAndPin {
+  Servo o;
+  int pin;
+};
+ServoAndPin servos[_MAX_SERVOS];
+
+Servo* findServo(int pin) {
+  for (int i = 0; i < _MAX_SERVOS; i++) {
+    if (servos[i].pin == pin) {
+      return &servos[i].o;
+    }
+  }
+  return NULL;
+}  
 
 void setup() {
     Serial.begin(SERIAL_RATE);
     Serial.setTimeout(SERIAL_TIMEOUT);
     
-    servo.attach(12);
-    
+    // Output pins
     int len = readData();
     for (int i = 0; i < len; i++) {
         pinMode(readData(), OUTPUT);
     }
+    // Input pins
     len = readData();
     for (int i = 0; i < len; i++) {
         pinMode(readData(), INPUT);
+    }
+    // Servos
+    len = readData();
+    for (int i = 0; i < _MAX_SERVOS; i++) {
+        if (i < len) {
+          int pin = readData(); 
+          servos[i].pin = pin;          
+          servos[i].o.attach(pin);
+        }
+        else {
+          servos[i].pin = INVALID_SERVO_PIN;
+        }
     }
 }
 
@@ -49,7 +76,15 @@ void loop() {
             //read analog value
             Serial.println(analogRead(readData())); break;
         case 5 :
-            servo.write(readData());  break;
+        {
+            int servoPin = readData();
+            int angle = readData();
+            Servo* servo = findServo(servoPin);
+            if (servo) {
+              servo->write(angle);  
+            }
+            break;
+        }
         case 6 :
             Serial.println(digitalRead(readData()));break;
         case 99:

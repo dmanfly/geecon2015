@@ -30,6 +30,14 @@ class Arduino(object):
             for each_pin in pinArray:
                 self.__sendData(each_pin)
         return True
+    def servos(self, pinArray):
+	self.__sendData(len(pinArray))
+
+        if(isinstance(pinArray, list) or isinstance(pinArray, tuple)):
+            self.__SERVO_PINS = pinArray
+            for each_pin in pinArray:
+                self.__sendData(each_pin)
+        return True
 
     def setLow(self, pin):
         self.__sendData('0')
@@ -60,9 +68,9 @@ class Arduino(object):
         self.__sendData('6')
         self.__sendData(pin)
         return self.__getData()
-    def setAngle(self, pin,angle):
+    def setAngle(self, pin, angle):
         self.__sendData('5')
-        # self.__sendData(pin)
+        self.__sendData(pin)
         self.__sendData(angle)
         return True
 

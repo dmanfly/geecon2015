@@ -7,6 +7,7 @@ pin = 13
 #declare output pins as a list/tuple
 b.output([pin,13])
 b.input([8])
+b.servos([])
     
 # for i in xrange(18):
 #     # b.setHigh(pin)
