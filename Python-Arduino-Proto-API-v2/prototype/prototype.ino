@@ -61,12 +61,14 @@ void setup() {
     for (int i = 0; i < len; i++) {
       pinMode(pins[i], OUTPUT);
     }
+    Serial.println("XXGot Output pins");
     // Input
     len = readArray(pins, MAX_PINS);
     for (int i = 0; i < len; i++) {
       pinMode(pins[i], INPUT);
     }
     //Servos
+    Serial.println("XXGetting Input pins!");
     len = readArray(pins, MAX_PINS);
     for (int i = 0; i < _MAX_SERVOS; i++) {
       if (i < len) { 
@@ -77,6 +79,9 @@ void setup() {
         servos[i].pin = INVALID_PIN;
       }
     }  
+    Serial.println("XXGetting Servo pins!");
+    pinMode(7,OUTPUT);
+    digitalWrite(7,HIGH);
 }
 
 void loop() {
@@ -167,8 +172,14 @@ void loop() {
 
 int readArray(int* array, int BUFFER_SIZE) {
     int len = readData();  
+    
+    char debug_msg[12] = {0};
+    snprintf(debug_msg, 12, "XXread len XX%d\n", len);
+    Serial.println(debug_msg);
+    
     for (int i = 0; i < len; i++) {
         int val = readData();
+//        Serial.println("XXread data read:%d",val);
         if (i < BUFFER_SIZE)
           array[i] = val; 
     }

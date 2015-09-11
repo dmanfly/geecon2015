@@ -2,8 +2,8 @@ from arduino import Arduino
 import time
 
 try:
-    b = Arduino('/dev/tty.usbmodem1421')
-    print "Connected to usbmodem1421"
+    b = Arduino('/dev/tty.usbmodem1411')
+    print "Connected to usbmodem1411"
 except:
     try:
     	b = Arduino('/dev/ttyACM0')

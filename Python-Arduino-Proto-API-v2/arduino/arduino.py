@@ -10,66 +10,59 @@ class Arduino(object):
 
     def __init__(self, port, baudrate=115200):
         self.serial = serial.Serial(port, baudrate)
- 	self.serial.write(b'FF')
+        self.serial.write(b'FF')
+
     def __str__(self):
         return "Arduino is on port %s at %d baudrate" %(self.serial.port, self.serial.baudrate)
 
     def setup(self, outputPins, inputPins, servoPins):
 	# Wait for ready signal
 	print "Setting up master" 
-	while(self.__getData()[0] != "r"):
+    	while(self.__getData()[0] != "r"):
             pass
-	print "Found init msg"
-	self.serial.write("99\n")
+    	print "Found init msg"
+    	self.serial.write("99")
 
-	self._output(outputPins);
-	self._input(inputPins);
-	self._servos(servoPins);
+    	self._output(outputPins);
+    	self._input(inputPins);
+    	self._servos(servoPins);
 
     def setupSlave(self, slaveIdx, slaveTx, outputPins, inputPins, servoPins):
-	self.__sendData('6')
-	self.__sendData(slaveIdx);
-	self.__sendData(slaveTx);
-	
-	self.__sendData(len(outputPins))
-	for each_pin in outputPins:
-	    self.__sendData(each_pin)
+    	self.__sendData('6')
+    	self.__sendData(slaveIdx);
+    	self.__sendData(slaveTx);
 
-	self.__sendData(len(inputPins))
-	for each_pin in inputPins:
-	    self.__sendData(each_pin)
+        self.__sendData(len(outputPins))
+        for each_pin in outputPins:
+            self.__sendData(each_pin)
 
-	self.__sendData(len(servoPins))
-	for each_pin in servoPins:
-	    self.__sendData(each_pin)
-    		
+    	self.__sendData(len(inputPins))
+    	for each_pin in inputPins:
+    	    self.__sendData(each_pin)
+
+    	self.__sendData(len(servoPins))
+    	for each_pin in servoPins:
+    	    self.__sendData(each_pin)
+
     def nextCommandAsSlave(self, slaveIdx):
-	self.__sendData('7')
-	self.__sendData(slaveIdx)
+    	self.__sendData('7')
+    	self.__sendData(slaveIdx)
 
     def _output(self, pinArray):
+        print pinArray
         self.__sendData(len(pinArray))
-
-        if(isinstance(pinArray, list) or isinstance(pinArray, tuple)):
-            self.__OUTPUT_PINS = pinArray
-            for each_pin in pinArray:
-                self.__sendData(each_pin)
+        for each_pin in pinArray:
+            self.__sendData(each_pin)    
         return True
     def _input(self, pinArray):
         self.__sendData(len(pinArray))
-
-        if(isinstance(pinArray, list) or isinstance(pinArray, tuple)):
-            self.__INPUT_PINS = pinArray
-            for each_pin in pinArray:
-                self.__sendData(each_pin)
+        for each_pin in pinArray:
+            self.__sendData(each_pin)
         return True
     def _servos(self, pinArray):
-	self.__sendData(len(pinArray))
-
-        if(isinstance(pinArray, list) or isinstance(pinArray, tuple)):
-            self.__SERVO_PINS = pinArray
-            for each_pin in pinArray:
-                self.__sendData(each_pin)
+    	self.__sendData(len(pinArray))
+        for each_pin in pinArray:
+            self.__sendData(each_pin)
         return True
 
     def setLow(self, pin):
@@ -114,18 +107,18 @@ class Arduino(object):
 
     def __sendData(self, serial_data):
         while(1):
-	    data = self.__getData()
-	    if data[0] == "w":
-		print "Got wait"
-		break
-	    if data[0] == "r":
-		raise "Got out of play initialize" 
+	       data = self.__getData()
+	       if data[0] == "w":
+		      break
+	       if data[0] == "r":
+		      raise "Got out of play initialize" 
         serial_data = str(serial_data).encode('utf-8')
         self.serial.write(serial_data)
+        time.sleep(0.01)
 
     def __getData(self):
         input_string = self.serial.readline()
-	print "IN: " + input_string	
+	# print "IN: " + input_string	
 	if input_string[0] == "X":
 	    print "DEBUG! : " +  input_string	
 	try:
