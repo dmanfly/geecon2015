@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import serial
+import time
 
 class Arduino(object):
 
@@ -9,13 +10,14 @@ class Arduino(object):
 
     def __init__(self, port, baudrate=115200):
         self.serial = serial.Serial(port, baudrate)
-        self.serial.write(b'99')
-
+ 	self.serial.write(b'99')
     def __str__(self):
         return "Arduino is on port %s at %d baudrate" %(self.serial.port, self.serial.baudrate)
 
     def setup(self, outputPins, inputPins, servoPins):
-	self.__sendData(b'99')	
+        self.__sendData('9')
+	time.sleep(0.1)
+	self.__sendData('9')
 	self._output(outputPins);
 	self._input(inputPins);
 	self._servos(servoPins);

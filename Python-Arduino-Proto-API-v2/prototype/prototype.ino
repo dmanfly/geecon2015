@@ -44,7 +44,7 @@ void setup() {
     }
     int pins[MAX_PINS];
     
-    while (readData() != 99);
+    while (readData() != 9);
     
     // Output
     int len = readArray(pins, MAX_PINS);
