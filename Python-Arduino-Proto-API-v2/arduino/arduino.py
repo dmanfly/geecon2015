@@ -16,19 +16,14 @@ class Arduino(object):
         return "Arduino is on port %s at %d baudrate" %(self.serial.port, self.serial.baudrate)
 
     def setup(self, outputPins, inputPins, servoPins):
-	# Wait for ready signal
-	print "Setting up master" 
-    	while(self.__getData()[0] != "r"):
-            pass
-    	print "Found init msg"
-    	self.serial.write("99")
+        print "Setting up master"
 
     	self._output(outputPins);
     	self._input(inputPins);
     	self._servos(servoPins);
 
     def setupSlave(self, slaveIdx, slaveTx, outputPins, inputPins, servoPins):
-    	self.__sendData('6')
+    	self.__sendData('7')
     	self.__sendData(slaveIdx);
     	self.__sendData(slaveTx);
 
@@ -45,7 +40,7 @@ class Arduino(object):
     	    self.__sendData(each_pin)
 
     def nextCommandAsSlave(self, slaveIdx):
-    	self.__sendData('7')
+    	self.__sendData('8')
     	self.__sendData(slaveIdx)
 
     def _output(self, pinArray):
@@ -66,36 +61,36 @@ class Arduino(object):
         return True
 
     def setLow(self, pin):
-        self.__sendData('0')
-        self.__sendData(pin)
-        return True
-
-    def setHigh(self, pin):
         self.__sendData('1')
         self.__sendData(pin)
         return True
 
-    def getState(self, pin):
+    def setHigh(self, pin):
         self.__sendData('2')
+        self.__sendData(pin)
+        return True
+
+    def getState(self, pin):
+        self.__sendData('3')
         self.__sendData(pin)
         return self.__formatPinState(self.__getData()[0])
 
     def analogWrite(self, pin, value):
-        self.__sendData('3')
+        self.__sendData('4')
         self.__sendData(pin)
         self.__sendData(value)
         return True
 
     def analogRead(self, pin):
-        self.__sendData('4')
+        self.__sendData('5')
         self.__sendData(pin)
         return self.__getData()
     def digitalRead(self,pin):
-        self.__sendData('6')
+        self.__sendData('7')
         self.__sendData(pin)
         return self.__getData()
     def setAngle(self, pin, angle):
-        self.__sendData('5')
+        self.__sendData('6')
         self.__sendData(pin)
         self.__sendData(angle)
         return True
@@ -108,23 +103,20 @@ class Arduino(object):
     def __sendData(self, serial_data):
         while(1):
 	       data = self.__getData()
-	       if data[0] == "w":
+	       if len(data) > 0 and data[0] == "w":
 		      break
-	       if data[0] == "r":
-		      raise "Got out of play initialize" 
         serial_data = str(serial_data).encode('utf-8')
         self.serial.write(serial_data)
-        time.sleep(0.01)
 
     def __getData(self):
         input_string = self.serial.readline()
-	# print "IN: " + input_string	
-	if input_string[0] == "X":
-	    print "DEBUG! : " +  input_string	
-	try:
-	    input_string = input_string.decode('utf-8')
-	except:
-	    print "undecoded string " + input_string
+        print "IN: " + input_string
+    	if input_string[0] == "X":
+            print "DEBUG! : " +  input_string
+    	try:
+    	    input_string = input_string.decode('utf-8')
+    	except:
+    	    print "undecoded string " + input_string
         return input_string.rstrip('\n')
 
     def __formatPinState(self, pinValue):

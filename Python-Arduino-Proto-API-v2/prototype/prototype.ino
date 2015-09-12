@@ -8,7 +8,7 @@
 #endif
 
 #include <Servo.h> 
-#include <SendOnlySoftwareSerial.h>
+#include <SoftwareSerial.h>
 
 int minPulse = 600;   // minimum servo position, us (microseconds)
 int maxPulse = 2400;  // maximum servo position, us
@@ -17,17 +17,13 @@ int maxPulse = 2400;  // maximum servo position, us
 #define MAX_SLAVES 3
 #define MAX_PINS 32
 #define INVALID_PIN -1
-//void print(const char* str)
-//{
-//  snprintf(debug_msg, 12, "XXread len %d\n", len);
-//  Serial.println(debug_msg);`
-//}
+
 struct ServoAndPin {
   Servo o;
   int pin;
 };
 ServoAndPin servos[_MAX_SERVOS];
-SendOnlySoftwareSerial* slavesSerials[MAX_SLAVES];
+SoftwareSerial slaves[1] = {SoftwareSerial(10,11)};
 
 Servo* findServo(int pin) {
   for (int i = 0; i < _MAX_SERVOS; i++) {
@@ -41,38 +37,21 @@ Servo* findServo(int pin) {
 void setup() {
     Serial.begin(SERIAL_RATE);
     Serial.setTimeout(SERIAL_TIMEOUT);
-
-    // Null slaves
-    for (int i = 0; i < MAX_SLAVES; i++) {
-      slavesSerials[i] = NULL;
-    }
+    slaves[0].begin(SERIAL_RATE); 
+    
     int pins[MAX_PINS];
-    Serial.println("r");
-    while (1) {
-      if(Serial.available() > 0) {
-        if (Serial.parseInt() == 99) {
-          Serial.println("XXFound 99!");
-          break;
-       }
-      }
-      else {
-        delay(20);
-      }
-    }
-    Serial.println("XXGetting Output pins!");
+
     // Output
     int len = readArray(pins, MAX_PINS);
     for (int i = 0; i < len; i++) {
       pinMode(pins[i], OUTPUT);
     }
-    Serial.println("XXGot Output pins");
     // Input
     len = readArray(pins, MAX_PINS);
     for (int i = 0; i < len; i++) {
       pinMode(pins[i], INPUT);
     }
     //Servos
-    Serial.println("XXGetting Input pins!");
     len = readArray(pins, MAX_PINS);
     for (int i = 0; i < _MAX_SERVOS; i++) {
       if (i < len) { 
@@ -83,29 +62,39 @@ void setup() {
         servos[i].pin = INVALID_PIN;
       }
     }  
-    Serial.println("XXGetting Servo pins!");
+    Serial.println("XXGot pins!");
     pinMode(7,OUTPUT);
     digitalWrite(7,HIGH);
 }
 
 void loop() {
-    switch (readData()) {
-        case 0 :
-            //set digital low
-            digitalWrite(readData(), LOW); break;
+    int cmd = readData();
+    char debug_msg[40] = {0};
+    snprintf(debug_msg, 40, "cmd %d", cmd);
+    Serial.println(debug_msg);
+
+    switch (cmd) {
         case 1 :
-            //set digital high
-            digitalWrite(readData(), HIGH); break;
+            // set digital low
+            digitalWrite(readData(), LOW); 
+            break;
         case 2 :
-            //get digital value
-            Serial.println(digitalRead(readData())); break;
+            //set digital high
+            digitalWrite(readData(), HIGH); 
+            break;
         case 3 :
-            // set analog value
-            analogWrite(readData(), readData()); break;
+            //get digital value
+            Serial.println(digitalRead(readData())); 
+            break;
         case 4 :
-            //read analog value
-            Serial.println(analogRead(readData())); break;
+            // set analog value
+            analogWrite(readData(), readData()); 
+            break;
         case 5 :
+            //read analog value
+            Serial.println(analogRead(readData())); 
+            break;
+        case 6 :
         {
             int servoPin = readData();
             int angle = readData();
@@ -115,7 +104,7 @@ void loop() {
             }
             break;
         }
-        case 6:
+        case 7:
         {
             // Initialize slave's serial
             int slaveId = readData();
@@ -126,46 +115,41 @@ void loop() {
             int inputLen = readArray(inputPins, MAX_PINS);
             int outputLen = readArray(outputPins, MAX_PINS);
             int servoLen = readArray(servoPins, MAX_PINS);
-            char debug_msg[40] = {0};
-            snprintf(debug_msg, 40, "XXtx:%d in:%d, out : %d, ser : %d",slaveTx, inputLen,outputLen, servoLen);
-            Serial.println(debug_msg);
-            if (slavesSerials[slaveId]) {
-              slavesSerials[slaveId]->end();
-              delete slavesSerials[slaveId];
-            }
+
+            SoftwareSerial& ser = slaves[slaveId];
             
-            slavesSerials[slaveId] = new SendOnlySoftwareSerial((uint8_t)slaveTx); 
-            slavesSerials[slaveId]->begin(SERIAL_RATE);
-            
-            writeInt(slavesSerials[slaveId], 99);
-            delay(100);
-            
-            writeArray(slavesSerials[slaveId], inputLen, inputPins);
-            writeArray(slavesSerials[slaveId], outputLen, outputPins);
-            writeArray(slavesSerials[slaveId], servoLen, servoPins);
+            writeArray(ser, outputLen, outputPins);
+            writeArray(ser, inputLen, inputPins);
+            writeArray(ser, servoLen, servoPins);
             
             break;
         }
-        case 7:
+        case 8:
         {
           int slaveId = readData();
-          int cmd = readData();
-          
-          int cmdTypes[6] = {0, 0, 1, 2, 1, 2};
-          int type = cmdTypes[cmd]; 
-          SendOnlySoftwareSerial* ser = slavesSerials[slaveId];
-          if (!ser) return;                            
-          
+          int slave_cmd = readData();
           int pin = readData();
+          
+          int cmdTypes[7] = {0, 0, 0, 1, 2, 1, 2};
+          int type = cmdTypes[slave_cmd]; 
+          SoftwareSerial& ser = slaves[0];                            
+          
           if (type == 0) { // set/unsetPin
-            writeInt(ser, cmd);
+            writeInt(ser, slave_cmd); 
             writeInt(ser, pin);
+            char debug_msg[20] = {0};
+            snprintf(debug_msg, 20, "Set %d %d %d", slave_cmd, pin, slave_cmd == 1);
+            Serial.println(debug_msg);
           }
           else if (type == 1) { // readPin
              // nothing
           }
           else if (type == 2) { // writeAnalog/Servo  
              int val = readData();
+             char debug_msg[20] = {0};
+             snprintf(debug_msg, 20, "Set %d %d %d", cmd, pin, val);
+             Serial.println(debug_msg);
+             
              writeInt(ser, cmd);
              writeInt(ser, pin);
              writeInt(ser, val);
@@ -176,21 +160,18 @@ void loop() {
             //when the PC side dropped the "w" that we sent
             break;
     }
+
+
 }
 
-int readArray(int* array, int BUFFER_SIZE) {
-    int len = readData();  
-    while (len == 99){
-      len = readData();
-    }
-    
-    char debug_msg[12] = {0};
-    snprintf(debug_msg, 12, "XXread len %d", len);
+int readArray(int* array, int BUFFER_SIZE) {    
+    int len = readData();
+    char debug_msg[20] = {0};
+    snprintf(debug_msg, 20, "XXread len %d", len);
     Serial.println(debug_msg);
     
     for (int i = 0; i < len; i++) {
         int val = readData();
-//        Serial.println("XXread data read:%d",val);
         if (i < BUFFER_SIZE)
           array[i] = val; 
     }
@@ -208,19 +189,22 @@ int readData() {
 }
 
 
-void writeInt(SendOnlySoftwareSerial* ser, int intie) {
-  char debug_msg[12] = {0};
-  snprintf(debug_msg, 12, "XX%d", intie);
-  Serial.println(debug_msg);
-  
-  char msg[10] = {0};
-  int len = snprintf(msg, 10, "%d", intie);
-  for (int i = 0; i < len; i++) {
-    ser->write(msg[i]);
+void writeInt(SoftwareSerial& ser, int intie) {
+  //Serial.println("writeInt");
+  //while (ser.available() == 0);
+  int inei = ser.read();
+  while (inei != 'w' && inei != -1) {
+    inei = ser.read();
   }
+  //Serial.print("reading.. :");
+  //Serial.print(ser.read());
+  char msg[100]={' '};
+  //sprintf(msg,"%d", intie);
+  itoa(intie, msg + 1, 10);
+  ser.print(msg);
 }
 
-void writeArray(SendOnlySoftwareSerial* ser, int len, int* array) {
+void writeArray(SoftwareSerial& ser, int len, int* array) {
   writeInt(ser, len);
   for (int i = 0; i < len; i++) {
     writeInt(ser, array[i]);
