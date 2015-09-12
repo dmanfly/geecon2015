@@ -110,7 +110,7 @@ class Arduino(object):
 
     def __getData(self):
         input_string = self.serial.readline()
-        print "IN: " + input_string
+        #print "IN: " + input_string
     	if input_string[0] == "X":
             print "DEBUG! : " +  input_string
     	try:

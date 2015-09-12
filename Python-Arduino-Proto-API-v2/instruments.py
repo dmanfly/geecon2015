@@ -36,21 +36,21 @@ class Item:
 	
     def live(self, arduino, now):
 	for session in self.active_sessions:
-	    if now > session["start"] and now < av["start"] + av["length"]:
-	    	if not self.active_session: 
+	    if now > session["start"] and now < session["start"] + session["length"]:
+	    	if not self.active: 
 	    	    self.active = session
-		    self._start_active_session(self, arduino, session, now)
+		    self._start_active_session(arduino, session, now)
 		else:
-		    self._live_session(self, arduino, session, now)    	
+		    self._live_session(arduino, session, now)    	
 		return
 	   
 	if self.active:
-	    self._stop_active_session(self, arduino, self.active)
+	    self._stop_active_session(arduino, self.active)
 	    self.active = None 
     
-    def destroy():
+    def destroy(self, arduino):
 	if self.active:
-	    self._stop_active_session(self, arduino, self.active)
+	    self._stop_active_session(arduino, self.active)
 	    self.active = None
 
 class Servo(Item):
@@ -58,21 +58,21 @@ class Servo(Item):
 	Item.__init__(self, active_sessions, chip)
 	self.pin = pin
 
-    def _setAngle(self, angle):
+    def _setAngle(self, arduino, angle):
 	if self.chip != MASTER_CHIP:
 	    arduino.nextCommandAsSlave(self.chip)
 	arduino.setAngle(self.pin, angle); 	
     
     def _start_active_session(self, arduino, session, now):
-	self._setAngle(session["angle_start"])
+	self._setAngle(arduino, session["angle_start"])
 
     def _live_session(self, arduino, session, now):	
 	total_journey = session["angle_end"] - session["angle_start"]  	
 	rel_angle = session["angle_start"] + (now - session["start"]) / session["length"] * total_journey
-	self._setAngle(rel_angle)
+	self._setAngle(arduino, rel_angle)
 
     def _stop_active_session(self, arduino, session):
-	self._setAngle(session["angle_start"])
+	self._setAngle(arduino, session["angle_start"])
 
     def _get_servo_pin(self):
 	return self.pin
@@ -82,7 +82,7 @@ class LED(Item):
 	Item.__init__(self, active_sessions, chip)
 	self.pin = pin
 
-    def _setPin(to_high):
+    def _setPin(self, arduino, to_high):
 	if self.chip != MASTER_CHIP:
 	    arduino.nextCommandAsSlave(self.chip)
 	if to_high:	
@@ -91,10 +91,11 @@ class LED(Item):
 	    arduino.setLow(self.pin);
 
     def _start_active_session(self, arduino, session, now):
-	self._setPin(True);
+	print 'active LED ' + str(self.pin)
+	self._setPin(arduino, True);
 
     def _stop_active_session(self, arduino, session):
-	self._setPin(False);
+	self._setPin(arduino, False);
 
     def _get_output_pin(self):
 	return self.pin
@@ -109,9 +110,8 @@ class Switch:
 
     def check_trigger(self, arduino):
 	if arduino.getState(self.pin):
-            if current_scene is not None:
-		current_scene.destroy()
-	    current_scene.start()	    
+	    return self.scene
+	return None	    
 
 class Scene:
     def __init__(self, scene_items): 
@@ -126,15 +126,15 @@ class Scene:
 	    item.live(arduino, self.now)
 	self.now += interval
 			
-    def destory(self):
+    def destroy(self, arduino):
 	for item in self.scene_items:
-	    item.destroy()	
+	    item.destroy(arduino)	
 
 scene1 = Scene(
 [
-    LED(MASTER_CHIP, 13, [dict(start=1000, end=4000)]),
-    LED(MASTER_CHIP, 12, [dict(start=1000, end=1200), dict(start=1400, end=1600), dict(start=1800, end=2000)]), 
-    Servo(MASTER_CHIP, 9, [dict(start=4000, end=5000, angle_start=40, angle_end=100)])
+    LED(MASTER_CHIP, 13, [dict(start=1000, length=1000)]),
+    LED(MASTER_CHIP, 12, [dict(start=1000, length=400), dict(start=1800, length=400), dict(start=2600, length=2000)]), 
+    Servo(MASTER_CHIP, 9, [dict(start=4000, length=1000, angle_start=40, angle_end=100)])
 ])
 
 all_scenes = [scene1]
@@ -167,12 +167,20 @@ except:
 b.setup(pins_by_chip[MASTER_CHIP]["output"], master_inputs, pins_by_chip[MASTER_CHIP]["servos"])
 #b.setupSlave(SLAVE1_CHIP, SLAVE1_TX, pins_by_chip[SLAVE1_CHIP]["output"], [], pins_by_chip[SLAVE1_CHIP]["output"])
 #b.setupSlave(SLAVE2_CHIP, SLAVE2_TX, pins_by_chip[SLAVE2_CHIP]["output"], [], pins_by_chip[SLAVE2_CHIP]["output"])
-  
+ 
+current_scene = None
 while (1):
     for switch in switches:
-	switch.check_trigger(b)	    
+	scene = switch.check_trigger(b)
+	if scene:
+	    print "New scene!"
+	    if current_scene:
+		current_scene.destroy(b)
+	    time.sleep(0.1)
+	    scene.start()
+	    current_scene = scene
    
     if current_scene:
 	current_scene.play_for(b, 30)
-    time.sleep(30)
+    time.sleep(0.03)
 	
