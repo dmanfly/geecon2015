@@ -112,8 +112,8 @@ void loop() {
             int inputPins[MAX_PINS];
             int outputPins[MAX_PINS];
             int servoPins[MAX_PINS];
-            int inputLen = readArray(inputPins, MAX_PINS);
             int outputLen = readArray(outputPins, MAX_PINS);
+            int inputLen = readArray(inputPins, MAX_PINS);
             int servoLen = readArray(servoPins, MAX_PINS);
 
             SoftwareSerial& ser = slaves[slaveId];
@@ -150,7 +150,7 @@ void loop() {
              snprintf(debug_msg, 20, "Set %d %d %d", cmd, pin, val);
              Serial.println(debug_msg);
              
-             writeInt(ser, cmd);
+             writeInt(ser, slave_cmd);
              writeInt(ser, pin);
              writeInt(ser, val);
           }       
